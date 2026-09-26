@@ -19,4 +19,10 @@ public final class SearchResult {
 
     /** 搜索耗时（毫秒）。 */
     public long timeMs;
+
+    /** 根节点候选手（仅当 {@code SearchConfig.dumpRootStats} 打开时导出）。 */
+    public int[] rootMoves;
+
+    /** 与 {@link #rootMoves} 对应的根节点访问次数。 */
+    public int[] rootVisits;
 }

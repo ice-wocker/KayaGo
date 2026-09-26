@@ -18,8 +18,8 @@ public final class SearchConfig {
     /** 单个节点最大分支数，避免搜索过度分散。 */
     public int maxChildren = 60;
 
-    /** UCT 探索常数。 */
-    public double uctC = 1.15;
+    /** UCT 探索常数（非根节点）。 */
+    public double uctC = Tuned.uctC;
 
     /** 随机种子，0 表示按当前时间。 */
     public long seed = 0;
@@ -32,13 +32,13 @@ public final class SearchConfig {
      * 这是引擎棋力最关键的一项——空盘和稀疏局面下 UCB1 的胜率是纯噪声，
      * 没有先验时引擎会在开局随手走废棋。
      */
-    public double puctC = 1.6;
+    public double puctC = Tuned.puctC;
 
     /** 根节点 RAVE/AMAF 系数：越大越偏向「快速推演里走得好」的着法，0 表示关闭。 */
-    public double raveK = 800;
+    public double raveK = Tuned.raveK;
 
     /** 先验分布的软化温度：越大越平缓。 */
-    public double priorTemperature = 9.0;
+    public double priorTemperature = Tuned.priorTemperature;
 
     /**
      * 是否用「按分差折算的胜率」作为推演回报（而不是非胜即负的 0/1）。
@@ -50,7 +50,10 @@ public final class SearchConfig {
     public boolean scoreReward = true;
 
     /** 分差回报的尺度：领先这么多目时胜率约 0.73。默认按棋盘大小缩放。 */
-    public double scoreScale = 0;
+    public double scoreScale = Tuned.scoreScale;
+
+    /** 是否导出根节点访问分布（自对弈学习用）。 */
+    public boolean dumpRootStats = false;
 
     /**
      * 按棋力等级生成配置。等级越高思考时间越长。

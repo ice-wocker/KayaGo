@@ -10,8 +10,8 @@ android {
         applicationId "com.kayago"
         minSdk 26
         targetSdk 34
-        versionCode 2
-        versionName "1.1.0"
+        versionCode 3
+        versionName "1.2.0"
     }
 
     // 仓库内自带的演示用签名（密码见 README）。

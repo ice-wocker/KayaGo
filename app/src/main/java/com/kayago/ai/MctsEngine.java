@@ -116,6 +116,14 @@ public final class MctsEngine implements GoAI {
         res.winRate = rv > 0 ? root.wins.get() / (1000.0 * rv) : 0.5;
         res.move = best >= 0 ? children[best].move : Board.PASS;
         res.playouts = playouts.get();
+        if (config.dumpRootStats && n > 0) {
+            res.rootMoves = new int[n];
+            res.rootVisits = new int[n];
+            for (int i = 0; i < n; i++) {
+                res.rootMoves[i] = children[i].move;
+                res.rootVisits[i] = children[i].visits.get();
+            }
+        }
         Scorer scorer = new Scorer(board);
         res.scoreLead = scorer.areaDiff(komi);
         res.timeMs = (System.nanoTime() - startNs) / 1_000_000L;
@@ -180,7 +188,7 @@ public final class MctsEngine implements GoAI {
                                              SearchConfig cfg, double[] priorsOut) {
         int points = board.points;
         int[] moves = new int[points];
-        int[] scores = new int[points];
+        double[] scores = new double[points];
         int n = 0;
 
         int ec = board.emptyCount();
@@ -201,8 +209,8 @@ public final class MctsEngine implements GoAI {
         for (int i = 0; i < n; i++) {
             order[i] = i;
         }
-        final int[] sc = scores;
-        Arrays.sort(order, (a, b) -> Integer.compare(sc[b], sc[a]));
+        final double[] sc = scores;
+        Arrays.sort(order, (a, b) -> Double.compare(sc[b], sc[a]));
 
         int keep = Math.min(Math.max(1, cfg.rootCandidates), n);
         int[] out = new int[keep + 1];
@@ -214,7 +222,13 @@ public final class MctsEngine implements GoAI {
         out[keep] = Board.PASS;
         // 停一手：给一个中性偏低的分数。局面已定时其余候选会被“填自己的眼 / 自己的空”
         // 过滤掉，那时 PASS 自然成为最优选择。
-        raw[keep] = -8;
+        raw[keep] = Tuned.passScore;
+        // 先验分布里至少留一点的底，避免某个点永远不被探索。
+        if (out[0] == Board.PASS) {
+            out = new int[]{Board.PASS};
+            priorsOut[0] = 1.0;
+            return out;
+        }
 
         // 把启发式分数转成先验分布（softmax + 下限），供根节点 PUCT 使用。
         double mx = raw[0];
