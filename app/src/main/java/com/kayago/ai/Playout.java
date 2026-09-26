@@ -122,6 +122,25 @@ public final class Playout {
      */
     public static int run(Board b, byte col, int lastMove, Random rnd, int maxMoves,
                           Scorer scorer, double komi) {
+        return run(b, col, lastMove, rnd, maxMoves, scorer, komi, null);
+    }
+
+    /**
+     * 同上，另外把推演着法写入 {@code seqOut}：{@code seqOut[0]} 是手数，
+     * 着法从 {@code seqOut[1]} 开始。{@code seqOut} 需要能放下 {@code maxMoves + 1} 个元素，
+     * 传 null 表示不记录。供 RAVE/AMAF 使用。
+     */
+    public static int run(Board b, byte col, int lastMove, Random rnd, int maxMoves,
+                          Scorer scorer, double komi, int[] seqOut) {
+        return run(b, col, lastMove, rnd, maxMoves, scorer, komi, seqOut, null);
+    }
+
+    /**
+     * 同上，另外把终局分差（黑 - 白）写入 {@code scoreOut[0]}。
+     * 分差用于「按分差折算胜率」的回报方式，见 {@code SearchConfig#scoreReward}。
+     */
+    public static int run(Board b, byte col, int lastMove, Random rnd, int maxMoves,
+                          Scorer scorer, double komi, int[] seqOut, double[] scoreOut) {
         int applied = 0;
         int passes = 0;
         byte c = col;
@@ -136,6 +155,9 @@ public final class Playout {
                     break;
                 }
             }
+            if (seqOut != null) {
+                seqOut[1 + applied] = mv;
+            }
             applied++;
             if (mv == Board.PASS) {
                 passes++;
@@ -149,7 +171,14 @@ public final class Playout {
             c = Board.opposite(c);
         }
 
-        int winner = scorer.areaDiff(komi) > 0 ? Board.BLACK : Board.WHITE;
+        double diff = scorer.areaDiff(komi);
+        int winner = diff > 0 ? Board.BLACK : Board.WHITE;
+        if (seqOut != null) {
+            seqOut[0] = applied;
+        }
+        if (scoreOut != null) {
+            scoreOut[0] = diff;
+        }
         for (int i = 0; i < applied; i++) {
             b.undo();
         }

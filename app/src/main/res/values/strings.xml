@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">KayaGo</string>
+
+    <!-- 底部操作栏 -->
     <string name="btn_new">新局</string>
     <string name="btn_undo">悔棋</string>
     <string name="btn_pass">停一手</string>
@@ -8,5 +10,86 @@
     <string name="btn_hint">提示</string>
     <string name="btn_score">形势</string>
     <string name="btn_settings">设置</string>
+
+    <!-- 棋手卡片 -->
+    <string name="player_you">你</string>
+    <string name="player_ai">KayaGo</string>
+    <string name="role_black">执黑</string>
+    <string name="role_white">执白</string>
+    <string name="player_level_fmt">等级%1$d</string>
+    <string name="player_sub_fmt">%1$s · %2$s</string>
+    <string name="player_captured_fmt">提子 %1$d</string>
+    <string name="player_thinking">思考中…</string>
+
+    <!-- 状态条 -->
+    <string name="status_move_fmt">第 %1$d 手</string>
+    <string name="status_komi_fmt">贴目 %1$s</string>
+    <string name="status_winrate_fmt">AI 胜率 %1$s</string>
+    <string name="status_turn_black">黑方行棋</string>
+    <string name="status_turn_white">白方行棋</string>
+    <string name="status_over_fmt">对局结束 · %1$s</string>
+    <string name="status_turn_you">（你）</string>
+    <string name="status_turn_ai">（AI）</string>
+    <string name="status_sep"> · </string>
     <string name="thinking">AI 思考中…</string>
+    <string name="calculating">正在计算…</string>
+
+    <!-- 提示信息 -->
+    <string name="toast_illegal">这里不能下（自杀或劫争禁着）</string>
+    <string name="toast_ai_error">AI 思考出错了，改为停一手</string>
+    <string name="toast_hint_failed">提示计算失败</string>
+    <string name="toast_hint_pass">AI 建议：停一手</string>
+    <string name="toast_hint_fmt">AI 建议：%1$s（胜率 %2$s）</string>
+    <string name="toast_not_your_turn">还没轮到你</string>
+    <string name="toast_score_failed">形势判断失败</string>
+
+    <!-- 认输 -->
+    <string name="resign_title">认输</string>
+    <string name="resign_message">确定要认输吗？这一局会立刻结束。</string>
+    <string name="resign_confirm">认输</string>
+    <string name="resign_cancel">再想想</string>
+
+    <!-- 终局结果 -->
+    <string name="result_win">你赢了</string>
+    <string name="result_lose">你输了</string>
+    <string name="result_draw">和棋</string>
+    <string name="result_detail_fmt">黑 %1$s 子 · 白 %2$s 子</string>
+    <string name="result_lines_fmt">黑棋 %1$d 子（其中空 %2$d）\n白棋 %3$d 子（其中空 %4$d）\n黑贴 %5$s 子 · 中国规则数子</string>
+    <string name="result_resigned_note">对方认输，本局未做终局数子。</string>
+    <string name="result_again">再来一局</string>
+    <string name="result_look">看看棋盘</string>
+
+    <!-- 形势判断 -->
+    <string name="score_title">形势判断</string>
+    <string name="score_lead_fmt">%1$s领先 %2$s 子</string>
+    <string name="score_even">形势两分</string>
+    <string name="score_black_name">黑棋</string>
+    <string name="score_white_name">白棋</string>
+    <string name="score_black_value_fmt">黑 %1$s</string>
+    <string name="score_white_value_fmt">白 %1$s</string>
+    <string name="score_settled_fmt">已确定的空：%1$s%%（单官 %2$d 点）</string>
+    <string name="score_detail_fmt">黑：棋 %1$d + 空 %2$d = %3$s\n白：棋 %4$d + 空 %5$d + 贴目 %6$s = %7$s</string>
+    <string name="score_note">棋盘上的小方块表示当前已确定的归属。</string>
+    <string name="score_playout_fmt">随机推演 600 局的平均分差：%1$s 子（正数表示黑好）。</string>
+    <string name="score_clear">清除标记</string>
+    <string name="score_close">关闭</string>
+
+    <!-- 新对局设置 -->
+    <string name="settings_title">新对局</string>
+    <string name="settings_size">棋盘大小</string>
+    <string name="settings_color">我执</string>
+    <string name="settings_level">AI 棋力</string>
+    <string name="settings_level_fmt">等级 %1$d · 约 %2$s 秒/手</string>
+    <string name="settings_start">开始对局</string>
+    <string name="settings_cancel">取消</string>
+    <string name="size_9">9 路</string>
+    <string name="size_13">13 路</string>
+    <string name="size_19">19 路</string>
+    <string name="color_black">执黑</string>
+    <string name="color_white">执白</string>
+    <string name="level_1">1</string>
+    <string name="level_2">2</string>
+    <string name="level_3">3</string>
+    <string name="level_4">4</string>
+    <string name="level_5">5</string>
 </resources>

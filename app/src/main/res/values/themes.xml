@@ -9,5 +9,17 @@
         <item name="android:navigationBarColor">@color/primary_dark</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:colorControlHighlight">#33D8A657</item>
+    </style>
+
+    <!-- 自定义对话框：深色圆角面板 + 金色强调 -->
+    <style name="AppDialog" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/bg_dialog</item>
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:colorBackground">@color/dialog_bg</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:colorControlHighlight">#33D8A657</item>
+        <item name="android:backgroundDimAmount">0.62</item>
     </style>
 </resources>

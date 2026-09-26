@@ -5,22 +5,42 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- 棋盘（圆角木面） -->
     <path
-        android:pathData="M30,30 L30,78 M46,30 L46,78 M62,30 L62,78 M78,30 L78,78"
-        android:strokeColor="#FF6D4C41"
-        android:strokeWidth="2" />
-    <path
-        android:pathData="M30,30 L78,30 M30,46 L78,46 M30,62 L78,62 M30,78 L78,78"
-        android:strokeColor="#FF6D4C41"
-        android:strokeWidth="2" />
+        android:fillColor="#FFE3B778"
+        android:pathData="M30,20 L78,20 A10,10 0 0,1 88,30 L88,78 A10,10 0 0,1 78,88 L30,88 A10,10 0 0,1 20,78 L20,30 A10,10 0 0,1 30,20 Z" />
 
+    <!-- 网格 -->
+    <path
+        android:pathData="M32,32 L76,32 M32,47 L76,47 M32,62 L76,62 M32,76 L76,76"
+        android:strokeColor="#FF4A3A21"
+        android:strokeWidth="1.8" />
+    <path
+        android:pathData="M32,32 L32,76 M47,32 L47,76 M62,32 L62,76 M76,32 L76,76"
+        android:strokeColor="#FF4A3A21"
+        android:strokeWidth="1.8" />
+
+    <!-- 天元 -->
+    <path
+        android:fillColor="#FF4A3A21"
+        android:pathData="M54,54 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+
+    <!-- 黑子 -->
     <path
         android:fillColor="#FF141414"
-        android:pathData="M46,46 m-11.5,0 a11.5,11.5 0 1,0 23,0 a11.5,11.5 0 1,0 -23,0" />
+        android:pathData="M47,47 m-11.5,0 a11.5,11.5 0 1,0 23,0 a11.5,11.5 0 1,0 -23,0" />
+    <path
+        android:fillColor="#4DFFFFFF"
+        android:pathData="M43.5,43.5 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
 
+    <!-- 白子 -->
     <path
         android:fillColor="#FFF7F5EC"
-        android:strokeColor="#FF8D8D8D"
-        android:strokeWidth="1"
         android:pathData="M62,62 m-11.5,0 a11.5,11.5 0 1,0 23,0 a11.5,11.5 0 1,0 -23,0" />
+    <path
+        android:fillColor="#FFCFC8B6"
+        android:pathData="M65,65 m-4.5,0 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0" />
+    <path
+        android:fillColor="#CCFFFFFF"
+        android:pathData="M58.5,58 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
 </vector>

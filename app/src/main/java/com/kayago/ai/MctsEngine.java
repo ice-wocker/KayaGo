@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -53,7 +54,8 @@ public final class MctsEngine implements GoAI {
         SearchConfig config = cfg != null ? cfg : new SearchConfig();
 
         SearchResult res = new SearchResult();
-        int[] candidates = buildRootCandidates(board, toMove, lastMove, config);
+        double[] priors = new double[board.points + 2];
+        int[] candidates = buildRootCandidates(board, toMove, lastMove, config, priors);
 
         Node root = new Node(NO_MOVE, toMove, null, false);
         if (candidates.length == 0) {
@@ -74,11 +76,15 @@ public final class MctsEngine implements GoAI {
         AtomicBoolean stop = new AtomicBoolean(false);
         AtomicLong playouts = new AtomicLong();
         AtomicInteger nodeCount = new AtomicInteger();
+        // 根节点 RAVE/AMAF 统计：下标就是根候选序号，与 children 顺序一致。
+        AtomicIntegerArray raveVisits = new AtomicIntegerArray(candidates.length);
+        AtomicIntegerArray raveWins = new AtomicIntegerArray(candidates.length);
         CountDownLatch latch = new CountDownLatch(threads);
 
         for (int t = 0; t < threads; t++) {
-            Worker w = new Worker(board, toMove, komi, config, root, candidates, maxMoves,
-                    deadline, maxPlayouts, stop, playouts, nodeCount, seed + t * 7919L, latch);
+            Worker w = new Worker(board, toMove, komi, config, root, candidates, priors,
+                    raveVisits, raveWins, maxMoves, deadline, maxPlayouts, stop, playouts,
+                    nodeCount, seed + t * 7919L, latch);
             Thread th = new Thread(w, "kayago-mcts-" + t);
             th.setDaemon(true);
             th.start();
@@ -98,7 +104,7 @@ public final class MctsEngine implements GoAI {
         for (int i = 0; i < n; i++) {
             Node c = children[i];
             int v = c.visits.get();
-            double wr = v > 0 ? (double) c.wins.get() / v : 0.0;
+            double wr = v > 0 ? c.wins.get() / (1000.0 * v) : 0.0;
             if (v > bestVisits || (v == bestVisits && wr > bestWr)) {
                 bestVisits = v;
                 bestWr = wr;
@@ -107,7 +113,7 @@ public final class MctsEngine implements GoAI {
         }
 
         int rv = root.visits.get();
-        res.winRate = rv > 0 ? (double) root.wins.get() / rv : 0.5;
+        res.winRate = rv > 0 ? root.wins.get() / (1000.0 * rv) : 0.5;
         res.move = best >= 0 ? children[best].move : Board.PASS;
         res.playouts = playouts.get();
         Scorer scorer = new Scorer(board);
@@ -171,7 +177,7 @@ public final class MctsEngine implements GoAI {
     // ------------------------------------------------------------------
 
     private static int[] buildRootCandidates(Board board, byte toMove, int lastMove,
-                                             SearchConfig cfg) {
+                                             SearchConfig cfg, double[] priorsOut) {
         int points = board.points;
         int[] moves = new int[points];
         int[] scores = new int[points];
@@ -200,10 +206,41 @@ public final class MctsEngine implements GoAI {
 
         int keep = Math.min(Math.max(1, cfg.rootCandidates), n);
         int[] out = new int[keep + 1];
+        double[] raw = new double[keep + 1];
         for (int i = 0; i < keep; i++) {
             out[i] = moves[order[i]];
+            raw[i] = scores[order[i]];
         }
         out[keep] = Board.PASS;
+        // 停一手：给一个中性偏低的分数。局面已定时其余候选会被“填自己的眼 / 自己的空”
+        // 过滤掉，那时 PASS 自然成为最优选择。
+        raw[keep] = -8;
+
+        // 把启发式分数转成先验分布（softmax + 下限），供根节点 PUCT 使用。
+        double mx = raw[0];
+        for (int i = 1; i <= keep; i++) {
+            if (raw[i] > mx) {
+                mx = raw[i];
+            }
+        }
+        double temp = Math.max(0.5, cfg.priorTemperature);
+        double sum = 0;
+        for (int i = 0; i <= keep; i++) {
+            double p = Math.exp((raw[i] - mx) / temp);
+            priorsOut[i] = p;
+            sum += p;
+        }
+        if (sum <= 0) {
+            sum = 1;
+        }
+        double sum2 = 0;
+        for (int i = 0; i <= keep; i++) {
+            priorsOut[i] = Math.max(priorsOut[i] / sum, 1e-4);
+            sum2 += priorsOut[i];
+        }
+        for (int i = 0; i <= keep; i++) {
+            priorsOut[i] /= sum2;
+        }
         return out;
     }
 
@@ -237,6 +274,9 @@ public final class MctsEngine implements GoAI {
         private final SearchConfig cfg;
         private final Node root;
         private final int[] candidates;
+        private final double[] priors;
+        private final AtomicIntegerArray raveVisits;
+        private final AtomicIntegerArray raveWins;
         private final int maxMoves;
         private final long deadline;
         private final int maxPlayouts;
@@ -246,8 +286,20 @@ public final class MctsEngine implements GoAI {
         private final long seed;
         private final CountDownLatch latch;
 
+        /** 推演着法记录：seq[0] 是手数，着法从 seq[1] 开始。 */
+        private final int[] seq;
+        /** 推演终局分差（黑 - 白）。 */
+        private final double[] outcome = new double[1];
+        /** 分差 -> 胜率的尺度。 */
+        private final double scoreScale;
+        /** AMAF 窗口内出现过的着法戳记（下标为落点内部索引，PASS 放在 board.total）。 */
+        private final int[] amafMark;
+        private int amafStamp;
+        private final int passSlot;
+
         Worker(Board rootBoard, byte rootColor, double komi, SearchConfig cfg, Node root,
-               int[] candidates, int maxMoves, long deadline, int maxPlayouts,
+               int[] candidates, double[] priors, AtomicIntegerArray raveVisits,
+               AtomicIntegerArray raveWins, int maxMoves, long deadline, int maxPlayouts,
                AtomicBoolean stop, AtomicLong globalPlayouts, AtomicInteger nodeCount,
                long seed, CountDownLatch latch) {
             this.rootBoard = rootBoard;
@@ -256,6 +308,9 @@ public final class MctsEngine implements GoAI {
             this.cfg = cfg;
             this.root = root;
             this.candidates = candidates;
+            this.priors = priors;
+            this.raveVisits = raveVisits;
+            this.raveWins = raveWins;
             this.maxMoves = maxMoves;
             this.deadline = deadline;
             this.maxPlayouts = maxPlayouts;
@@ -264,6 +319,24 @@ public final class MctsEngine implements GoAI {
             this.nodeCount = nodeCount;
             this.seed = seed;
             this.latch = latch;
+            this.passSlot = rootBoard.total;
+            this.seq = new int[maxMoves + 1];
+            this.amafMark = new int[rootBoard.total + 1];
+            this.scoreScale = cfg.scoreScale > 0
+                    ? cfg.scoreScale : Math.max(4.0, rootBoard.points * 0.06);
+        }
+
+        /**
+         * 把终局分差折算成「黑方胜率」（0..1000 的整数，避免浮点原子量）。
+         * 用分差而不是非胜即负，是为了在一边倒的局面下仍然能分辨着法好坏。
+         */
+        private int valueForBlack(double diff, int winner) {
+            if (!cfg.scoreReward) {
+                return winner == Board.BLACK ? 1000 : 0;
+            }
+            double v = 1.0 / (1.0 + Math.exp(-diff / scoreScale));
+            int iv = (int) Math.round(v * 1000.0);
+            return iv < 0 ? 0 : (iv > 1000 ? 1000 : iv);
         }
 
         @Override
@@ -343,23 +416,30 @@ public final class MctsEngine implements GoAI {
 
                 // 3) 模拟
                 int winner;
+                int valueBlack;
+                int playoutLen = 0;
                 if (node.terminal) {
-                    winner = scorer.areaDiff(komi) > 0 ? Board.BLACK : Board.WHITE;
+                    double diff = scorer.areaDiff(komi);
+                    winner = diff > 0 ? Board.BLACK : Board.WHITE;
+                    valueBlack = valueForBlack(diff, winner);
                 } else {
-                    winner = Playout.run(board, col, node.move, rnd, maxMoves, scorer, komi);
+                    winner = Playout.run(board, col, node.move, rnd, maxMoves, scorer, komi,
+                            seq, outcome);
+                    playoutLen = seq[0];
+                    valueBlack = valueForBlack(outcome[0], winner);
                 }
 
-                // 4) 回传
+                // 4) 回传（回报按“黑方胜率 * 1000”存，节点各自取自己那一侧）
                 for (int i = 0; i < pathLen; i++) {
                     Node nd = path[i];
                     nd.visits.incrementAndGet();
-                    if (nd.moverColor == winner) {
-                        nd.wins.incrementAndGet();
-                    }
+                    nd.wins.addAndGet(nd.moverColor == Board.BLACK
+                            ? valueBlack : 1000 - valueBlack);
                 }
                 root.visits.incrementAndGet();
-                if (rootColor == winner) {
-                    root.wins.incrementAndGet();
+                root.wins.addAndGet(rootColor == Board.BLACK ? valueBlack : 1000 - valueBlack);
+                if (cfg.raveK > 0 && root.nChildren > 0) {
+                    updateRootRave(path, pathLen, playoutLen, valueBlack);
                 }
                 for (int i = 0; i < vlossCount; i++) {
                     path[i].vloss.decrementAndGet();
@@ -378,6 +458,41 @@ public final class MctsEngine implements GoAI {
             globalPlayouts.addAndGet(local & 15);
         }
 
+        /** RAVE/AMAF 只看最前面若干手，控制开销。 */
+        private static final int RAVE_WINDOW = 24;
+
+        /**
+         * 根节点 RAVE/AMAF 更新：本局快速推演里出现过（且在窗口内）的着法，
+         * 也算作对它的一次“访问”。访问次数还很少时，这个信号比树内胜率更可靠。
+         */
+        private void updateRootRave(Node[] path, int pathLen, int playoutLen, int valueBlack) {
+            amafStamp++;
+            int stamp = amafStamp;
+            int limit = Math.min(pathLen + playoutLen, RAVE_WINDOW);
+            // 树内路径部分：合并序列下标 0/2/4… 是根方走的
+            for (int i = 0; i < pathLen && i < limit; i += 2) {
+                amafMark[idxOf(path[i].move)] = stamp;
+            }
+            // 推演部分：在合并序列里的下标是 pathLen + j，需要与根方同色
+            int jStart = (pathLen & 1) == 0 ? 0 : 1;
+            for (int j = jStart; pathLen + j < limit; j += 2) {
+                amafMark[idxOf(seq[j + 1])] = stamp;
+            }
+            Node[] children = root.children;
+            int n = Math.min(root.nChildren, children.length);
+            int m = Math.min(n, raveVisits.length());
+            for (int i = 0; i < m; i++) {
+                if (amafMark[idxOf(children[i].move)] == stamp) {
+                    raveVisits.incrementAndGet(i);
+                    raveWins.addAndGet(i, valueBlack);
+                }
+            }
+        }
+
+        private int idxOf(int move) {
+            return move == Board.PASS ? passSlot : move;
+        }
+
         private Node selectChild(Node node) {
             Node[] children = node.children;
             if (children == null) {
@@ -389,16 +504,35 @@ public final class MctsEngine implements GoAI {
             }
             int parentVisits = node.visits.get() + node.vloss.get();
             double logPv = Math.log(parentVisits + 1.0);
+            double sqrtPv = Math.sqrt(parentVisits + 1.0);
+            boolean atRoot = node == root && (cfg.puctC > 0 || cfg.raveK > 0);
             Node best = null;
             double bestScore = Double.NEGATIVE_INFINITY;
             for (int i = 0; i < n; i++) {
                 Node c = children[i];
                 int v = c.visits.get();
-                double wr = v > 0 ? (double) c.wins.get() / v : 0.5;
+                double wr = v > 0 ? c.wins.get() / (1000.0 * v) : 0.5;
                 int eff = v + c.vloss.get();
-                double uct = wr + cfg.uctC * Math.sqrt(logPv / (eff + 1.0));
-                if (uct > bestScore) {
-                    bestScore = uct;
+                double score;
+                if (atRoot) {
+                    if (cfg.raveK > 0 && i < raveVisits.length()) {
+                        int rv = raveVisits.get(i);
+                        if (rv > 0) {
+                            double rq = raveWins.get(i) / (1000.0 * rv);
+                            double beta = Math.sqrt(cfg.raveK / (3.0 * parentVisits + cfg.raveK));
+                            wr = (1 - beta) * wr + beta * rq;
+                        }
+                    }
+                    score = wr;
+                    if (cfg.puctC > 0) {
+                        double prior = i < priors.length ? priors[i] : 1e-4;
+                        score += cfg.puctC * prior * sqrtPv / (1.0 + eff);
+                    }
+                } else {
+                    score = wr + cfg.uctC * Math.sqrt(logPv / (eff + 1.0));
+                }
+                if (score > bestScore) {
+                    bestScore = score;
                     best = c;
                 }
             }

@@ -34,6 +34,7 @@ public final class EngineSelfTest {
         testUndoStress();
         testGameKoAndHistory();
         testEvaluatesScore();
+        testOpeningSanity();
         bench();
         testEngineCapturesAtari();
         testEngineSelfPlay();
@@ -284,6 +285,34 @@ public final class EngineSelfTest {
         }
         double lead2 = MctsEngine.estimateScore(c, Board.BLACK, Board.PASS, 0, 200, 2);
         check("形势判断：白大优 (" + (int) lead2 + ")", lead2 < -5);
+    }
+
+    private static void testOpeningSanity() {
+        MctsEngine engine = new MctsEngine();
+        SearchConfig cfg = SearchConfig.forLevel(2, 9);
+        cfg.maxTimeMs = 500;
+        cfg.threads = 2;
+        cfg.seed = 5;
+
+        Board b = new Board(9);
+        SearchResult r = engine.think(b, Board.BLACK, Board.PASS, 7.5, cfg);
+        int x = b.x(r.move);
+        int y = b.y(r.move);
+        int edge = Math.min(Math.min(x, b.size - 1 - x), Math.min(y, b.size - 1 - y));
+        System.out.println("     空盘第一手: " + x + "," + y + "（离边 " + edge + " 路，推演 "
+                + r.playouts + " 次，胜率 " + String.format("%.3f", r.winRate) + "）");
+        check("空盘第一手不走一路/二路", edge >= 2);
+        check("空盘第一手落在角部一带", edge <= 4);
+
+        // 对手占角后，己方第一手也应该是有价值的大场，而不是贴着边缘
+        Board c = new Board(9);
+        c.play(c.point(2, 2), Board.WHITE);
+        SearchResult r2 = engine.think(c, Board.BLACK, c.point(2, 2), 7.5, cfg);
+        int x2 = c.x(r2.move);
+        int y2 = c.y(r2.move);
+        int edge2 = Math.min(Math.min(x2, c.size - 1 - x2), Math.min(y2, c.size - 1 - y2));
+        System.out.println("     白占三三后黑的第一手: " + x2 + "," + y2 + "（离边 " + edge2 + " 路）");
+        check("第二手同样不走一路/二路", edge2 >= 2);
     }
 
     private static void bench() {

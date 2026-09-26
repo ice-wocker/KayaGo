@@ -1,15 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 背景层次：窗口 / 面板 / 卡片 -->
+    <color name="window_bg">#FF0E1713</color>
+    <color name="panel_bg">#FF16221B</color>
+    <color name="panel_bg_alt">#FF1B2A21</color>
+    <color name="card_bg">#FF1C2A22</color>
+    <color name="card_bg_active">#FF263B2D</color>
+    <color name="dialog_bg">#FF1A2620</color>
+    <color name="divider">#FF2C3F33</color>
+
+    <!-- 主色（墨绿）与点缀色（暖金） -->
     <color name="primary">#FF2E5A3F</color>
-    <color name="primary_dark">#FF1B3A28</color>
+    <color name="primary_dark">#FF12241A</color>
     <color name="accent">#FFD8A657</color>
-    <color name="window_bg">#FF14211A</color>
-    <color name="panel_bg">#FF1E3026</color>
-    <color name="text_primary">#FFEDEDED</color>
-    <color name="text_secondary">#FFA8B8AE</color>
+    <color name="accent_soft">#FFE7C286</color>
+    <color name="accent_dim">#FF8A6E3C</color>
+    <color name="on_accent">#FF1A1206</color>
+    <color name="segment_bg">#FF202F26</color>
+
+    <!-- 文字层次 -->
+    <color name="text_primary">#FFEDEBE4</color>
+    <color name="text_secondary">#FFA9B7AC</color>
+    <color name="text_disabled">#FF55645A</color>
+
+    <!-- 状态色 -->
+    <color name="success">#FF6FBF8B</color>
+    <color name="danger">#FFD07A6A</color>
+
+    <!-- 棋盘木色与线条 -->
     <color name="board_wood">#FFE3B778</color>
+    <color name="board_wood_light">#FFF1D6A4</color>
+    <color name="board_wood_dark">#FFC08F4E</color>
     <color name="board_line">#FF4A3A21</color>
+    <color name="board_label">#B0705A31</color>
+    <color name="board_grain">#FF6B4A22</color>
+
+    <!-- 棋子 -->
     <color name="stone_black">#FF141414</color>
     <color name="stone_white">#FFF7F5EC</color>
+
     <color name="ic_launcher_background">#FF2E5A3F</color>
 </resources>
