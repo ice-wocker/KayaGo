@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KayaGo</string>
+    <string name="btn_new">新局</string>
+    <string name="btn_undo">悔棋</string>
+    <string name="btn_pass">停一手</string>
+    <string name="btn_resign">认输</string>
+    <string name="btn_hint">提示</string>
+    <string name="btn_score">形势</string>
+    <string name="btn_settings">设置</string>
+    <string name="thinking">AI 思考中…</string>
+</resources>

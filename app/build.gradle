@@ -1,0 +1,42 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.kayago'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.kayago"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    // 仓库内自带的演示用签名（密码见 README）。
+    // 若要上架应用商店，请替换为你自己的 keystore。
+    signingConfigs {
+        release {
+            storeFile file("../keystore/kayago-release.jks")
+            storePassword "kayago2026"
+            keyAlias "kayago"
+            keyPassword "kayago2026"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // 纯 Java、零第三方依赖，不需要额外的 dependencies 块。
+}
