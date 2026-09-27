@@ -14,8 +14,10 @@ import java.util.Locale;
  *
  * <p>每一轮做四件事：
  * <ol>
- *   <li><b>自对弈产数据</b>：用现任冠军参数自我对弈，记录每个局面上引擎自己的根访问分布；</li>
- *   <li><b>训练</b>：用这份分布做策略蒸馏，微调走子评估权重（起点是冠军，只做精修）；</li>
+ *   <li><b>自对弈产数据</b>：用现任冠军参数自我对弈，记录每个局面上引擎自己的根访问分布，
+ *       以及**每局的胜负**；</li>
+ *   <li><b>训练</b>：混合目标 = 策略蒸馏（拟合访问分布）+ **胜负策略梯度**
+ *       （用「行棋方最后是赢是输」把实际那手推高/压低）。后者是引擎自身先验之外的新信号；</li>
  *   <li><b>跑分验证</b>：候选与现任冠军互相对弈、每局交换黑白；</li>
  *   <li><b>晋升</b>：只有胜率达标才把候选写成新冠军并落盘到 TunedParams.java，否则丢弃。</li>
  * </ol>
@@ -31,6 +33,12 @@ import java.util.Locale;
 public final class Evolve {
 
     private static final String TUNED_PATH = "app/src/main/java/com/kayago/ai/TunedParams.java";
+
+    /**
+     * 胜负策略梯度项的权重：蒸馏项负责「别偏离引擎已有判断太远」，
+     * 这一项负责「把当时那手往真正赢棋的方向挪」。两者量级取相近。
+     */
+    private static final double PG_WEIGHT = 0.5;
 
     /**
      * 晋升门槛：用 Wilson 区间 95% 下界来判断「候选真的更强」。
@@ -90,8 +98,8 @@ public final class Evolve {
                 System.out.println("  样本太少（" + samples.size() + "），跳过本轮");
                 continue;
             }
-            double[] candW = Trainer.train(samples, champion.weights, 160, 12.0, 2e-3,
-                    1.0 / champion.priorTemperature, 7, true);
+            double[] candW = Trainer.train(samples, champion.weights, 160, 40.0, 2e-3,
+                    1.0 / champion.priorTemperature, PG_WEIGHT, 7, true);
             Variant cand = champion.withWeights(candW);
             System.out.println(String.format(Locale.US,
                     "  线位权重 line0..3：%.2f %.2f %.2f %.2f  ->  %.2f %.2f %.2f %.2f",

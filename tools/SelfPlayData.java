@@ -17,12 +17,15 @@ import java.util.Locale;
  * <p>数据格式（逐行）：
  * <pre>
  * GAME &lt;size&gt; &lt;komi&gt;
+ * RESULT &lt;winner&gt; &lt;diff&gt;                     # winner: 1=黑胜 2=白胜（用于胜负学习）
  * POS &lt;ply&gt; &lt;n&gt; &lt;move&gt; &lt;visits&gt; ...      # 该局面下引擎的根候选与访问次数
  * MOVE &lt;move&gt;                             # 紧接着实际走的一手
  * ...
  * END
  * </pre>
  * POS 一定出现在对应 MOVE 之前，所以读取时按顺序重放棋盘即可还原局面。
+ * RESULT 写在 GAME 之后、POS 之前，读取端在造样本时就已知道该局胜负，
+ * 于是每个局面都能标上「行棋方最后是赢还是输」——这是策略梯度的回报信号。
  */
 public final class SelfPlayData {
 
@@ -82,7 +85,14 @@ public final class SelfPlayData {
             }
             body.append("MOVE ").append(mv).append('\n');
         }
+        // 上限到了也要给出一个胜负（按中国规则数子），否则这一局没有可用的回报信号。
+        if (!game.isOver()) {
+            game.finish();
+        }
+        byte winner = game.winner();
+        double diff = Math.abs(game.detail().diff());
         w.println("GAME " + size + " " + String.format(Locale.US, "%.1f", MatchRunner.KOMI));
+        w.println("RESULT " + winner + " " + String.format(Locale.US, "%.1f", diff));
         w.print(body);
         w.println("END");
     }
