@@ -1,4 +1,4 @@
 // KayaGo 根构建脚本：只声明 Android Gradle Plugin 版本，具体配置在 app 模块。
 plugins {
-    id 'com.android.application' version '8.13.2' apply false
+    id 'com.android.application' version '9.4.1' apply false
 }
