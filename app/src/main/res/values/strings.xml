@@ -67,7 +67,7 @@
     <string name="score_white_name">白棋</string>
     <string name="score_black_value_fmt">黑 %1$s</string>
     <string name="score_white_value_fmt">白 %1$s</string>
-    <string name="score_settled_fmt">已确定的空：%1$s%%（单官 %2$d 点）</string>
+    <string name="score_settled_fmt">已确定的空：%1$d%%（单官 %2$d 点）</string>
     <string name="score_detail_fmt">黑：棋 %1$d + 空 %2$d = %3$s\n白：棋 %4$d + 空 %5$d + 贴目 %6$s = %7$s</string>
     <string name="score_note">棋盘上的小方块表示当前已确定的归属。</string>
     <string name="score_playout_fmt">随机推演 600 局的平均分差：%1$s 子（正数表示黑好）。</string>
