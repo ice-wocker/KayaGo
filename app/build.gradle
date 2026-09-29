@@ -38,5 +38,8 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    // 纯 Java、零第三方依赖，不需要额外的 dependencies 块。
+    // 应用本体零第三方依赖。这里的 junit 只用于单元测试，不进 APK。
+    dependencies {
+        testImplementation 'junit:junit:4.13.2'
+    }
 }
