@@ -46,7 +46,10 @@ public class MctsEngineTest {
         assertTrue("返回的着法应是合法点或停手，实际 move=" + r.move,
                 r.move == Board.PASS || b.isLegal(r.move, B));
         assertTrue("胜率应在 [0,1]，实际 " + r.winRate, r.winRate >= 0 && r.winRate <= 1);
-        assertTrue("推演次数应大于 0", r.playouts > 0);
+        // 空盘走固定星位短路（think 开头），不跑搜索是预期行为，故不断言推演次数；
+        // 多种子行为由 tools/EngineSelfTest.testOpeningSanity 覆盖。
+        assertTrue("空盘应走固定星位 (2,2)，实际 move=" + r.move,
+                r.move == b.point(2, 2));
     }
 
     @Test
