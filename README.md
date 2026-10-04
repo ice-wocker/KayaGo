@@ -1,5 +1,9 @@
 # KayaGo · 围棋 AI 对弈
 
+A zero-dependency Android Go app with a from-scratch MCTS engine — no network, no weight files, install and play.
+
+[![CI](https://github.com/ice-wocker/KayaGo/actions/workflows/android.yml/badge.svg)](https://github.com/ice-wocker/KayaGo/actions/workflows/android.yml) [![Release](https://img.shields.io/github/v/release/ice-wocker/KayaGo)](https://github.com/ice-wocker/KayaGo/releases) [![Stars](https://img.shields.io/github/stars/ice-wocker/KayaGo?style=social)](https://github.com/ice-wocker/KayaGo/stargazers)
+
 一个**开源、零第三方依赖**的 Android 围棋应用，内置**从零实现的蒙特卡洛树搜索（MCTS）AI**。
 不联网、不加载任何权重文件，装上就能下。
 
@@ -306,3 +310,7 @@ java -cp /tmp/kayago-test tools.MatchRunner 40 150 9 0 100 0 2.4 # puctC 改成 
 ## License
 
 [GPL-3.0](LICENSE)
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ice-wocker/KayaGo&type=Date)](https://star-history.com/#ice-wocker/KayaGo&Date)
