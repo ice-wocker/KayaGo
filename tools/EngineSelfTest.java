@@ -304,6 +304,23 @@ public final class EngineSelfTest {
         check("空盘第一手不走一路/二路", edge >= 2);
         check("空盘第一手落在角部一带", edge <= 4);
 
+        // 空盘首手必须与随机种子无关：此前约半数种子会走一路/二路
+        // （先验压不住随机终局的噪声），现已在 think 开头短路固定星位。
+        for (int seed = 1; seed <= 12; seed++) {
+            SearchConfig sc = SearchConfig.forLevel(2, 9);
+            sc.maxTimeMs = 200;
+            sc.threads = 2;
+            sc.seed = seed;
+            Board bb = new Board(9);
+            SearchResult rr = engine.think(bb, Board.BLACK, Board.PASS, 7.5, sc);
+            int xx = bb.x(rr.move), yy = bb.y(rr.move);
+            int ee = Math.min(Math.min(xx, 8 - xx), Math.min(yy, 8 - yy));
+            if (ee < 2) {
+                System.out.println("     seed=" + seed + " 走出 " + xx + "," + yy);
+            }
+            check("seed=" + seed + " 空盘不走一路/二路", ee >= 2);
+        }
+
         // 对手占角后，己方第一手也应该是有价值的大场，而不是贴着边缘
         Board c = new Board(9);
         c.play(c.point(2, 2), Board.WHITE);

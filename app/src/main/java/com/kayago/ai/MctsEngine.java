@@ -54,6 +54,16 @@ public final class MctsEngine implements GoAI {
         SearchConfig config = cfg != null ? cfg : new SearchConfig();
 
         SearchResult res = new SearchResult();
+        if (board.stones == 0) {
+            // 空盘没有任何信息：搜索只会把随机终局的噪声放大，什么种子走哪
+            // 全看运气（一路/二路开局约半数种子）。直接走固定星位，又快又稳。
+            // 见 EngineSelfTest.testOpeningSanity 的多种子断言。
+            int s = board.size >= 13 ? 3 : 2;
+            res.move = board.point(s, s);
+            res.winRate = 0.5;
+            res.timeMs = (System.nanoTime() - startNs) / 1_000_000L;
+            return res;
+        }
         double[] priors = new double[board.points + 2];
         int[] candidates = buildRootCandidates(board, toMove, lastMove, config, priors);
 
