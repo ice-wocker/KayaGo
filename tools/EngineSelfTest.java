@@ -136,18 +136,23 @@ public final class EngineSelfTest {
         b.play(b.point(4, 5), Board.WHITE);
         check("黑白各一子时分差 = -贴目", Math.abs(s.areaDiff(6.5) + 6.5) < 1e-9);
 
-        // 黑围出左上角 2x2 实地：墙在 x=2 与 y=2，另外放一颗白子让外围成为单官
+        // 黑围出左上角 2x2 实地。
+        //
+        // 注意：这 4 颗子必须<b>连成一块</b>才算围住。先前这里只在 x=2 / y=2 各放两子，
+        // 两段墙并不相接，(0,0)-(1,1) 这块空其实被两块不同的棋夹着，是假眼——
+        // 老实现照样判成 4 目。现在把 (2,2) 补上让四子连成一体，才是真正的实地。
         Board d = new Board(9);
         d.play(d.point(2, 0), Board.BLACK);
         d.play(d.point(2, 1), Board.BLACK);
         d.play(d.point(0, 2), Board.BLACK);
         d.play(d.point(1, 2), Board.BLACK);
+        d.play(d.point(2, 2), Board.BLACK);
         d.play(d.point(8, 8), Board.WHITE);
         Scorer.Detail det = new Scorer(d).detail(0);
-        check("黑地 = 4", det.blackTerritory == 4);
-        check("黑子 = 4", det.blackStones == 4);
+        check("左上 2x2 是黑地 = 4", det.blackTerritory == 4);
+        check("黑子 = 5", det.blackStones == 5);
         check("白子 = 1", det.whiteStones == 1);
-        check("单官 = 72", det.dame == 72);
+        check("单官 = 71", det.dame == 71);
         check("结构一致", d.validate());
     }
 
