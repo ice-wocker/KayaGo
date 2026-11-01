@@ -489,4 +489,139 @@ public class BoardTest {
             assertEquals("反复撤销后应回到同一局面", h, b.hash());
         }
     }
+
+    // ---------------- 数子：空区归属 ----------------
+
+    /**
+     * 空盘：所有空点都是单官，谁的地盘都不算。
+     *
+     * <p>回归用：早期实现只记录空区边沿「有没有黑/白」，一块空区哪怕只被一颗子贴着，
+     * 也会被整块判给那一方。空盘边沿什么都没有，勉强算对，所以真正暴露问题的是下面几个。
+     */
+    @Test
+    public void 空盘_没有任何地盘() {
+        Scorer.Detail d = new Scorer(new Board(9)).detail(7.5);
+        assertEquals(0, d.blackTerritory);
+        assertEquals(0, d.whiteTerritory);
+        assertEquals(81, d.dame);
+        assertEquals(-7.5, d.diff(), 1e-9);
+    }
+
+    /**
+     * 盘上只有一颗黑子时，剩下 80 个空点<b>不是</b>黑空。
+     *
+     * <p>这是真实缺陷的回归：早期实现在这个局面给出「黑 81 目、白 7.5 目」，
+     * 也就是判黑赢 73.5 子。一颗子贴着整盘空＝没围住任何东西，只能是单官。
+     */
+    @Test
+    public void 单颗子贴着整盘空_不算地盘() {
+        Board b = new Board(9);
+        play(b, 2, 2, B);
+        Scorer.Detail d = new Scorer(b).detail(7.5);
+        assertEquals("黑只有 1 颗子，不该有目", 0, d.blackTerritory);
+        assertEquals("剩下 80 个空点全是单官", 80, d.dame);
+        assertEquals("总点数守恒", 81,
+                d.blackStones + d.whiteStones + d.blackTerritory + d.whiteTerritory + d.dame);
+    }
+
+    /** 双方各下一子、都没有围空时，空点必须判成单官，不能塞给任何一方。 */
+    @Test
+    public void 两子对望_空点都是单官() {
+        Board b = new Board(9);
+        play(b, 4, 4, B);
+        play(b, 4, 6, W);
+        Scorer.Detail d = new Scorer(b).detail(7.5);
+        assertEquals(0, d.blackTerritory);
+        assertEquals(0, d.whiteTerritory);
+        assertEquals(79, d.dame);
+    }
+
+    /** 真眼：黑连成一块围住 1 个点，这 1 点算黑空。 */
+    @Test
+    public void 一整块棋围住的真眼_算地盘() {
+        Board b = new Board(9);
+        // 左上 3x3 只留 (1,1) 为空，其余 8 点连成一块
+        int[][] ring = {{0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1}, {2, 2}};
+        for (int[] p : ring) {
+            play(b, p[0], p[1], B);
+        }
+        assertEquals("8 颗子应连成一块", b.cid[b.fromIndex(0)], b.cid[b.fromIndex(2 * 9 + 2)]);
+        Scorer.Detail d = new Scorer(b).detail(7.5);
+        assertEquals("围住的 1 点算黑空", 1, d.blackTerritory);
+        assertEquals(72, d.dame);
+        assertEquals(9.0, d.blackScore, 1e-9);
+    }
+
+    /**
+     * 假眼：4 颗<b>互不相连</b>的单子围出的那个点不算任何一方。
+     *
+     * <p>它们随时会被各个击破，这个「眼」是假的。判成地盘等于白送一方一目。
+     */
+    @Test
+    public void 互不相连的四颗子围出的点_是假眼() {
+        Board b = new Board(9);
+        play(b, 1, 0, B);
+        play(b, 0, 1, B);
+        play(b, 1, 2, B);
+        play(b, 2, 1, B);
+        assertFalse("四颗子不应连成一块",
+                b.cid[b.fromIndex(1)] == b.cid[b.fromIndex(0 * 9 + 1)]
+                        && b.cid[b.fromIndex(0 * 9 + 1)] == b.cid[b.fromIndex(2 * 9 + 1)]);
+        Scorer.Detail d = new Scorer(b).detail(7.5);
+        assertEquals("假眼不算地盘", 0, d.blackTerritory);
+    }
+
+    /** 双方各围一个真眼：各算各的，互不吞并。 */
+    @Test
+    public void 双方各围一目_各算各的() {
+        Board b = new Board(9);
+        int[][] blackRing = {{0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1}, {2, 2}};
+        int[][] whiteRing = {{8, 8}, {8, 7}, {8, 6}, {7, 8}, {7, 6}, {6, 8}, {6, 7}, {6, 6}};
+        for (int[] p : blackRing) {
+            play(b, p[0], p[1], B);
+        }
+        for (int[] p : whiteRing) {
+            play(b, p[0], p[1], W);
+        }
+        Scorer.Detail d = new Scorer(b).detail(7.5);
+        assertEquals(1, d.blackTerritory);
+        assertEquals(1, d.whiteTerritory);
+        assertEquals(63, d.dame);
+        assertEquals(9.0, d.blackScore, 1e-9);
+        assertEquals(8 + 1 + 7.5, d.whiteScore, 1e-9);
+    }
+
+    /** 任何局面下，数子必须把棋盘点数分完：棋 + 空 + 单官 = 总点数。 */
+    @Test
+    public void 数子必须守恒_随机局面() {
+        java.util.Random rnd = new java.util.Random(20261101L);
+        for (int t = 0; t < 40; t++) {
+            Board b = new Board(9);
+            for (int i = 0; i < 60; i++) {
+                int x = rnd.nextInt(9);
+                int y = rnd.nextInt(9);
+                b.play(b.fromIndex(y * 9 + x), (i % 2 == 0) ? B : W);
+            }
+            Scorer.Detail d = new Scorer(b).detail(7.5);
+            assertEquals("第 " + t + " 局数子应守恒", 81,
+                    d.blackStones + d.whiteStones + d.blackTerritory + d.whiteTerritory + d.dame);
+        }
+    }
+
+    /** areaDiff（搜索热路径）与 detail 必须对同一个局面给出一致的分差。 */
+    @Test
+    public void areaDiff与detail必须一致() {
+        java.util.Random rnd = new java.util.Random(97L);
+        for (int t = 0; t < 40; t++) {
+            Board b = new Board(9);
+            for (int i = 0; i < 50; i++) {
+                int x = rnd.nextInt(9);
+                int y = rnd.nextInt(9);
+                b.play(b.fromIndex(y * 9 + x), (i % 2 == 0) ? B : W);
+            }
+            double area = new Scorer(b).areaDiff(7.5);
+            double viaDetail = new Scorer(b).detail(7.5).diff();
+            assertEquals("第 " + t + " 局 areaDiff 与 detail 应一致", viaDetail, area, 1e-9);
+        }
+    }
 }
