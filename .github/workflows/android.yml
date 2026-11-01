@@ -24,7 +24,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         # 版本由仓库内的 Gradle Wrapper 决定；该 action 同时负责依赖缓存
 
       # ubuntu-latest 已预装 Android SDK，这里只补齐项目需要的 platform / build-tools。
